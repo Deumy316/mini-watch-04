@@ -1,58 +1,165 @@
-# Mini Watch · Day4 시작 자료
+# mini-watch-day04
 
-Day3 일반 서비스에는 로그인 성공 여부를 확인하는 코드만 있었다. Day4 시작 자료는 그 코드에 로그인 유지·로그아웃·글쓰기 접근 확인을 보완한 판이다.
+React와 Flask를 이용해 일반 서비스의 요청 기록을 확인하고 관찰 메모를 관리하는 감시 대시보드 프로젝트입니다.
 
-감시 서비스에는 기존 요청 수집 API와 함께 운영자 인증·관찰 메모 API를 완성해 제공한다. Day4 본 수업에서는 이 API와 통신하는 React 화면을 만든다.
+기존 일반 게시판 서비스는 유지하고, 감시 서비스는 React 프론트엔드와 Flask API로 구성했습니다. 데이터는 PostgreSQL에 저장하며 React는 DB에 직접 접근하지 않고 Flask API를 통해 데이터를 조회·변경합니다.
 
-## 학생 시작 위치
+## 1. 프로젝트 구성
 
-- 저장소: https://github.com/zeroskill2400/mini-watch
-- Day4 시작 자료: https://github.com/zeroskill2400/mini-watch/tree/day04-start
-- 학생 폴더: `C:\work\mini-watch-day04`
-- 기존 Day3 폴더는 보존한다. 새 폴더에서 Day4 시작 자료를 사용하고, PostgreSQL의 기존 `general_db`·`monitor_db`는 그대로 연결한다.
+```text
+mini-watch-day04/
+├─ general/
+│  └─ ...                         # 기존 게시판과 요청 기록 전송 기능
+├─ monitor/
+│  ├─ backend/
+│  │  ├─ app.py
+│  │  ├─ auth_helpers.py
+│  │  ├─ create_user.py
+│  │  ├─ db.py
+│  │  ├─ error_handlers.py
+│  │  ├─ event_rules.py
+│  │  ├─ note_rules.py
+│  │  ├─ routes/
+│  │  │  ├─ auth.py
+│  │  │  ├─ events.py
+│  │  │  └─ notes.py
+│  │  ├─ repositories/
+│  │  │  ├─ users.py
+│  │  │  ├─ events.py
+│  │  │  └─ notes.py
+│  │  ├─ sql/
+│  │  │  ├─ create_database.sql
+│  │  │  ├─ day04.sql
+│  │  │  └─ http_events.sql
+│  │  ├─ .env.example
+│  │  └─ requirements.txt
+│  └─ frontend/
+│     ├─ src/
+│     │  ├─ App.jsx
+│     │  ├─ api/
+│     │  │  ├─ auth.js
+│     │  │  ├─ events.js
+│     │  │  └─ notes.js
+│     │  └─ components/
+│     │     ├─ LoginForm.jsx
+│     │     ├─ EventList.jsx
+│     │     ├─ NoteList.jsx
+│     │     ├─ NoteDetail.jsx
+│     │     ├─ NoteForm.jsx
+│     │     └─ DeleteConfirm.jsx
+│     ├─ package.json
+│     ├─ package-lock.json
+│     └─ vite.config.js
+├─ .gitignore
+└─ README.md
+```
 
-## 폴더별 준비
+## 2. 사용 기술
 
-VS Code의 터미널 기본 프로필을 **Command Prompt**로 선택하고 새 터미널을 연다. 각 서비스 폴더에서 처음 한 번만 다음 순서로 실행한다.
+- 일반 서비스: Flask, PostgreSQL, psycopg
+- 감시 백엔드: Flask, PostgreSQL, psycopg, Werkzeug, Flask session
+- 감시 프론트엔드: React, Vite, JavaScript, Fetch API
+- 데이터 흐름: React → Flask API → PostgreSQL
 
-일반 서비스:
+## 3. 설치 준비
 
-```bat
-cd C:\work\mini-watch-day04\general
+필요한 프로그램:
+
+- Python 3
+- PostgreSQL
+- Node.js
+- npm
+
+프로젝트 루트에서 가상환경을 생성합니다.
+
+```cmd
 python -m venv venv
+```
+
+Windows CMD:
+
+```cmd
 venv\Scripts\activate
-python -m pip install -r requirements.txt
 ```
 
-감시 서비스는 새 터미널에서 준비한다.
+Windows PowerShell:
 
-```bat
-cd C:\work\mini-watch-day04\monitor\backend
-python -m venv venv
-venv\Scripts\activate
-python -m pip install -r requirements.txt
+```powershell
+.\venv\Scripts\Activate.ps1
 ```
 
-기존 venv를 준비했다면 `python -m venv venv`를 반복하지 않아도 된다. 실행할 때는 해당 폴더로 이동하고 `venv\Scripts\activate`를 실행한 다음 `python app.py`를 입력한다.
+## 4. Python 패키지 설치
 
-## 환경 설정
+감시 백엔드 패키지를 설치합니다.
 
-두 폴더 모두 `.env.example`을 복사해 `.env`를 만든다. 기존 PostgreSQL 접속 정보를 사용하며 `DB_NAME`은 각 파일에 적힌 이름을 유지한다.
-
-일반 서비스 `general/.env.example`:
-
-```dotenv
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_NAME=general_db
-DB_USER=postgres
-DB_PASSWORD=YOUR_POSTGRES_PASSWORD
-SECRET_KEY=CHANGE_ME_TO_YOUR_OWN_RANDOM_SECRET
+```cmd
+pip install -r monitor\backend\requirements.txt
 ```
 
-감시 서비스 `monitor/backend/.env.example`:
+`requirements.txt`
 
-```dotenv
+```text
+Flask==3.1.3
+psycopg[binary]==3.2.10
+python-dotenv==1.2.1
+```
+
+일반 서비스에 별도 `requirements.txt`가 있다면 해당 파일도 설치합니다.
+
+## 5. PostgreSQL 준비
+
+### 5-1. 데이터베이스 생성
+
+PostgreSQL에서 다음 SQL을 실행합니다.
+
+```sql
+CREATE DATABASE monitor_db;
+```
+
+또는 다음 파일을 사용합니다.
+
+```text
+monitor/backend/sql/create_database.sql
+```
+
+### 5-2. 테이블 생성
+
+`monitor_db`에 접속한 뒤 다음 테이블을 생성합니다.
+
+```sql
+CREATE TABLE IF NOT EXISTS http_events (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    method TEXT NOT NULL,
+    path TEXT NOT NULL,
+    status_code INTEGER NOT NULL,
+    event_type TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notes (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL
+);
+```
+
+수업 준비본을 사용하는 경우 다음 파일을 실행합니다.
+
+```text
+monitor/backend/sql/day04.sql
+```
+
+## 6. 환경 변수 설정
+
+`monitor/backend/.env.example`을 참고하여 같은 폴더에 `.env`를 생성합니다.
+
+```env
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_NAME=monitor_db
@@ -61,120 +168,278 @@ DB_PASSWORD=YOUR_POSTGRES_PASSWORD
 SECRET_KEY=CHANGE_ME_TO_YOUR_OWN_RANDOM_SECRET
 ```
 
-`DB_PASSWORD`에는 본인 PC의 PostgreSQL 비밀번호를 넣는다. 각 서비스 터미널에서 다음 명령을 실행해 서로 다른 `SECRET_KEY`를 만든다.
+설정값 용도:
 
-```bat
-python -c "import secrets; print(secrets.token_hex(32))"
-```
+| 설정값 | 용도 |
+|---|---|
+| DB_HOST | PostgreSQL 서버 주소 |
+| DB_PORT | PostgreSQL 포트 |
+| DB_NAME | 사용할 데이터베이스 이름 |
+| DB_USER | PostgreSQL 사용자 |
+| DB_PASSWORD | PostgreSQL 비밀번호 |
+| SECRET_KEY | Flask session 서명용 비밀키 |
 
-출력된 문자열을 해당 서비스 `.env`의 `SECRET_KEY=` 뒤에 붙인다. `.env`는 Git에서 제외하고, 키를 교안·스크린샷·채팅에 복사하지 않는다.
+실제 `.env`에는 자신의 PostgreSQL 비밀번호와 32자 이상의 임의 `SECRET_KEY`를 사용합니다.
 
-`SECRET_KEY`는 로그인 비밀번호와 별개로 세션 쿠키의 서명을 만들고 확인하는 서버 설정이다. 기존 .env를 사용하는 경우 DB 값을 바꾸지 말고 이 한 줄을 추가한다.
+실제 `.env`는 Git에 포함하지 않습니다.
 
-## SQL과 계정
+## 7. 테스트 계정 생성
 
-일반 서비스가 실행 중이면 `Ctrl+C`로 멈춘다. pgAdmin에서 `general_db`의 Query Tool을 열고 **general/sql/day04.sql 전문**을 실행한다.
+감시 백엔드 폴더로 이동합니다.
 
-이 SQL은 기존 users·posts를 유지하며 글 번호가 기존 번호 뒤에서 이어지도록 시퀀스를 준비한다. 테이블 삭제나 게시글 초기화가 없다.
-
-pgAdmin에서 `monitor_db`의 Query Tool을 열고 **monitor/backend/sql/day04.sql 전문**을 실행한다. 기존 http_events를 유지하고 users·notes를 추가한다.
-
-각 서비스의 가상환경이 활성화된 터미널에서 실행한다.
-
-```bat
+```cmd
+cd monitor\backend
 python create_user.py
 ```
 
-- 일반 서비스 공개 실습 계정: `student` / `Learn123!`
-- 감시 서비스 공개 실습 계정: `operator` / `Learn123!`
-- 같은 아이디가 있으면 비밀번호까지 그대로 유지한다. 이 경우 기존에 만든 계정의 비밀번호로 로그인한다.
-- `create_user.py`는 이름·비밀번호를 묻지 않고 위 실습 계정을 만든다. 비밀번호 해시만 DB에 저장한다.
-- 새 DB를 사용하는 경우에만 기존 create_database.sql로 `general_db` 또는 `monitor_db`를 먼저 만든다. 기존 수업 DB를 다시 만들지 않는다.
+실습 계정 `operator`를 생성한 뒤 해당 계정으로 로그인합니다.
 
-`notes`는 처음에 비어 있다. 목록·상세를 먼저 배우는 4교시에 예시 자료를 넣으려면 그 교시에서 소개한 `INSERT`를 한 번 실행하고, 이후 5교시에는 React 작성 폼으로 메모를 추가한다.
+## 8. 서비스 실행
 
-## 실행과 접속
+### 일반 서비스
 
-감시 서비스 터미널과 일반 서비스 터미널에서 각각 실행한다.
+새 터미널에서:
 
-```bat
+```cmd
+cd general
 python app.py
 ```
 
-- 감시 서비스 확인: `http://127.0.0.1:5200/health`
-- 예상 JSON: `{"service":"monitor","status":"ok"}`
-- 일반 게시판: `http://127.0.0.1:5100/`
-- 일반 로그인: `http://127.0.0.1:5100/login`
-- 감시 React 화면은 1교시에서 만든 뒤 `http://127.0.0.1:5173`으로 접속한다.
+접속 주소:
 
-일반 게시판은 비로그인 상태에서도 목록·상세를 읽을 수 있다. 새 글·수정·삭제 주소에 들어가면 먼저 로그인 화면으로 이동한다.
+```text
+http://127.0.0.1:5100
+```
 
-## 일반 서비스 보완 확인
+### 감시 Flask API
 
-1. 비로그인 상태에서 `/board/new`에 접속하면 `/login`으로 이동한다.
-2. `student` 계정으로 로그인하면 목록 화면으로 이동하고 아이디·로그아웃 버튼이 보인다.
-3. 글을 작성하고 새로고침해도 로그인 상태가 유지된다.
-4. 로그아웃하면 새 글·수정·삭제 주소에서 다시 로그인을 요구한다.
-5. 감시 React 운영자 로그인은 이 로그인과 별개다. 일반 서비스는 `general_session`, 감시 서비스는 `monitor_session` 쿠키를 쓴다.
+새 터미널에서:
 
-`static/login.js`가 JSON으로 로그인 요청을 보내며 로그인 성공 후 목록 주소로 이동한다. 쿠키 저장·전송은 브라우저가 처리하고 서버가 쿠키의 서명을 검증한다.
+```cmd
+cd monitor\backend
+python app.py
+```
 
-Flask 기본 세션은 user_id·CSRF 토큰을 **서명한 쿠키**에 담는다. 서버의 별도 세션 DB에 저장하거나 내용을 암호화한 구현이 아니므로 비밀번호와 비밀 데이터는 세션에 넣지 않는다.
+접속 주소:
 
-서버는 로그인 상태를 검사할 때 users 테이블에 그 사용자 번호가 남아 있는지도 확인한다. UI에서 쓰기 버튼을 숨기는 것만으로 접근을 제어하지 않는다.
+```text
+http://127.0.0.1:5200
+```
 
-## 제공 코드에서 새로 보이는 이름
+### React 감시 화면
 
-- `session`: Flask가 요청 쿠키의 서명을 확인해 읽고, 변경 후 응답 쿠키로 다시 보내는 사용자별 값.
-- `session.clear()`: 로그인 성공·로그아웃 때 이전 값을 비우는 메서드. 이후 필요한 user_id·새 CSRF 토큰을 채운다.
-- `SECRET_KEY`: 쿠키 서명·검증에 쓰는 서버 비밀 설정.
-- `current_user()`: session의 user_id로 현재 DB 사용자를 조회하는 함수.
-- `csrf_token()`: 현재 세션에 변경 요청을 확인할 임의 문자열이 없으면 만들고 돌려주는 함수.
-- `valid_csrf()`: 폼·요청 헤더의 문자열과 세션에 들어 있는 값을 비교하는 함수.
-- `before_request`: 해당 Blueprint의 URL 함수를 실행하기 전에 공통 인증 검사를 실행하는 Flask 기능.
-- `context_processor`: Jinja 템플릿에 login_user·csrf_token을 공통으로 전달하는 Flask 기능.
-- `no_cache()`: 인증·메모 응답을 브라우저 캐시에 남기지 않도록 `Cache-Control: no-store`를 붙이는 함수.
-- `error_handlers.py`: 잘못된 API 주소·요청 방법·DB 오류를 `{error: "안내"}` 형식으로 응답하는 모듈.
+새 터미널에서:
 
-쿠키는 브라우저가 자동 전송하므로 변경 요청에는 별도로 CSRF 확인 값을 붙인다. React는 `/api/auth/me` 응답의 값을 받아 `X-CSRF-Token` 헤더에, Jinja 폼은 숨김 입력 칸에 넣는다.
+```cmd
+cd monitor\frontend
+npm install
+npm run dev
+```
 
-## 감시 API 확인표
+접속 주소:
 
-| 요청 | 비로그인 | 로그인 후 결과 |
-|---|---:|---|
-| GET /health | 200 | 서비스 상태 |
-| GET /api/auth/me | 200 | user·csrf_token |
-| POST /api/auth/login | CSRF 필요 | user·새 csrf_token |
-| POST /api/auth/logout | CSRF 필요 | user:null·새 csrf_token |
-| POST /api/events | 201 | 일반 서버에서 기록 수집 |
-| GET /api/events | 401 | 최신 50건의 events |
-| GET /api/notes | 401 | notes 목록 |
-| GET /api/notes/번호 | 401 | note 한 건 또는 404 |
-| POST /api/notes | 401 | CSRF 확인 후 note·201 |
-| PUT /api/notes/번호 | 401 | CSRF 확인 후 note·200 |
-| DELETE /api/notes/번호 | 401 | CSRF 확인 후 message·200 |
+```text
+http://localhost:5173
+```
 
-로그인 요청에 잘못된 아이디·비밀번호를 보내면 401, 제목·내용을 비우면 400, CSRF 값이 맞지 않으면 403, 없는 자료는 404다. 기존 `/auth/login` 경로도 일반 서비스에서 유지하며 이제 CSRF 확인과 세션 유지가 적용된다.
+Vite의 `/api` 프록시를 사용하여 React의 API 요청을 Flask 5200 포트로 전달합니다.
 
-`POST /api/events`는 일반 서비스가 자기 요청 기록을 보내는 기존 수집 경로다. 운영자 브라우저 세션을 붙이지 않으며, 감시 서비스가 일반 서비스 로그인을 대신하는 구조가 아니다.
+## 9. 구현한 필수 기능
 
-## 6교시 부록의 폴더 이동
+### 로그인
 
-부록 완성본(day05-start)에서는 일반 서비스 Python 파일이 `general/backend/`에 들어간다. 기존 일반 서비스 Python 파일·templates·static·sql을 이 폴더로 옮긴 구성이다.
+- React state로 아이디와 비밀번호 관리
+- `POST /api/auth/login`으로 JSON 전송
+- DB의 사용자 계정 조회
+- `check_password_hash()`를 이용한 비밀번호 해시 검증
+- 빈 입력은 `400`
+- 잘못된 계정 정보는 `401`
+- 성공 시 대시보드 표시
+- 로그아웃 시 로그인 화면으로 이동
 
-`.env`와 `venv`는 배포물에 포함하지 않는다. 부록을 별도 폴더로 받은 학생은 `general/backend`에서 새 venv와 .env를 준비하고 동일한 `general_db`에 연결한다.
+### 요청 기록 조회
 
-`db.py`는 자기 파일 옆의 `.env`를 읽으므로 새로운 배치에서도 `general/backend/.env`를 읽는다. 이전 Day3 폴더와 DB 데이터는 보존한다.
+- `GET /api/events`
+- 일반 서비스에서 수집한 요청 기록 표시
+- 요청 메서드 표시
+- 요청 경로 표시
+- 응답 상태 코드 표시
+- 이벤트 종류와 시간 표시
+- 요청 기록 새로고침 버튼 제공
+- 빈 목록 및 실패 안내 처리
 
-부록은 `routes/api_posts.py`를 추가해 `/api/posts` JSON CRUD를 제공한다. Jinja 화면은 `http://127.0.0.1:5100/`에서 비교할 수 있고, React 화면은 `http://127.0.0.1:5174`에서 본다.
+### 관찰 메모 CRUD
 
-두 화면은 같은 일반 backend와 general_db를 사용한다. React에서 추가한 글은 Jinja 목록에서도 확인할 수 있다.
+- `GET /api/notes` : 목록 조회
+- `GET /api/notes/<id>` : 상세 조회
+- `POST /api/notes` : 작성
+- `PUT /api/notes/<id>` : 수정
+- `DELETE /api/notes/<id>` : 삭제
+- 메모 목록은 React state에 저장 후 `map()`으로 출력
+- 메모 번호를 `key`로 사용
+- 제목 선택 시 상세 조회
+- 수정 시 기존 내용을 먼저 표시
+- 수정 취소 시 DB 내용을 변경하지 않음
+- 삭제 전 확인 화면 표시
+- 삭제 취소 시 메모 유지
+- 삭제 확정 시에만 API 호출
+- 저장·수정·삭제 성공 후 목록을 다시 조회
 
+### 입력 오류 처리
 
-## 학습 이력
+Flask에서 제목과 내용에 `strip()`을 적용한 뒤 검사합니다.
 
-try_*.py는 앞 수업의 연습 파일이다. 오늘 추가한 인증을 적용하기 전 요청 형식도 포함하므로 Day4의 실행 확인은 교안의 React 화면으로 진행한다.
+다음 경우 `400`을 반환합니다.
 
-## 다음 수업 시작 자료
+- 제목이 빈 값
+- 내용이 빈 값
+- 제목이 공백뿐인 값
+- 내용이 공백뿐인 값
+- JSON 형식이 올바르지 않은 경우
 
-https://github.com/zeroskill2400/mini-watch/tree/day05-start 에는 두 서비스의 React 화면까지 포함되어 있다. 본 브랜치는 그 출발점으로 frontend를 아직 만들지 않은 상태다.
+잘못된 수정 요청이 들어오면 기존 메모는 유지됩니다.
+
+### 존재하지 않는 메모 처리
+
+존재하지 않는 메모 번호에 대해 다음 요청은 `404`를 반환합니다.
+
+```text
+GET /api/notes/<id>
+PUT /api/notes/<id>
+DELETE /api/notes/<id>
+```
+
+## 10. 모듈 분리
+
+### React
+
+화면 컴포넌트는 `src/components`에 분리했습니다.
+
+```text
+LoginForm.jsx
+EventList.jsx
+NoteList.jsx
+NoteDetail.jsx
+NoteForm.jsx
+DeleteConfirm.jsx
+```
+
+API 요청 함수는 `src/api`에 분리했습니다.
+
+```text
+auth.js
+events.js
+notes.js
+```
+
+`App.jsx`는 로그인 전후 화면을 연결하고 필요한 데이터와 이벤트 함수를 props로 전달합니다.
+
+### Flask
+
+`routes`는 HTTP 요청·응답을 담당합니다.
+
+`repositories`는 SQL 실행을 담당합니다.
+
+`db.py`는 PostgreSQL 연결을 담당합니다.
+
+SQL 입력값은 문자열 연결이 아닌 `%s` 매개변수 바인딩을 사용합니다.
+
+## 11. 선택 심화 기능
+
+세션 유지와 API 보호 기능을 구현했습니다.
+
+- 로그인 성공 시 `session["user_id"]` 저장
+- `/api/auth/me`로 현재 사용자 확인
+- 브라우저 새로고침 후에도 로그인 상태 유지
+- 로그아웃 시 session 초기화
+- 로그인하지 않은 상태에서 보호 API 접근 시 `401`
+- 변경 요청에 CSRF 토큰 검사
+
+보호 대상:
+
+```text
+GET /api/events
+GET /api/notes
+GET /api/notes/<id>
+POST /api/notes
+PUT /api/notes/<id>
+DELETE /api/notes/<id>
+```
+
+## 12. 통합 확인 결과
+
+다음 순서로 동작을 확인했습니다.
+
+1. 일반 게시판에서 정상 페이지와 존재하지 않는 주소에 접속했습니다.
+2. 틀린 로그인 정보로 로그인 실패 안내를 확인했습니다.
+3. 올바른 `operator` 계정으로 로그인했습니다.
+4. 감시 화면에서 일반 서비스의 요청 메서드·경로·상태 코드를 확인했습니다.
+5. 관찰 메모를 작성하고 목록과 상세 화면에 동일한 내용이 표시되는 것을 확인했습니다.
+6. 기존 메모를 수정하고 DB와 화면에 변경 내용이 반영되는 것을 확인했습니다.
+7. 공백뿐인 내용으로 수정을 시도했을 때 `400` 오류가 발생하고 기존 내용이 유지되는 것을 확인했습니다.
+8. 삭제 취소 시 메모가 유지되고, 삭제 확정 시 DB와 목록에서 제거되는 것을 확인했습니다.
+9. 브라우저를 새로고침한 뒤 DB에 저장한 요청 기록과 메모가 유지되는 것을 확인했습니다.
+10. 로그아웃 후 로그인 화면으로 돌아오는 것을 확인했습니다.
+
+## 13. 주요 API
+
+### 인증
+
+```text
+GET  /api/auth/me
+POST /api/auth/login
+POST /api/auth/logout
+```
+
+### 요청 기록
+
+```text
+POST /api/events
+GET  /api/events
+```
+
+### 관찰 메모
+
+```text
+GET    /api/notes
+GET    /api/notes/<id>
+POST   /api/notes
+PUT    /api/notes/<id>
+DELETE /api/notes/<id>
+```
+
+## 14. 제출 제외 파일
+
+`.gitignore`를 통해 다음 파일과 폴더를 제출에서 제외합니다.
+
+```text
+.env
+venv/
+.venv/
+node_modules/
+dist/
+__pycache__/
+*.pyc
+*.log
+```
+
+`.env.example`은 제출에 포함합니다.
+
+## 15. 수업 제공 자료와 직접 구현한 부분
+
+수업에서 제공한 기존 `mini-watch` 구조와 DB 준비 자료를 기반으로 작업했습니다.
+
+직접 구현·수정한 주요 부분:
+
+- React 로그인 화면과 대시보드 연결
+- React 요청 기록 화면
+- React 관찰 메모 CRUD 화면
+- React API 요청 모듈 분리
+- 로그인 성공·실패 처리
+- 요청 기록 조회 및 새로고침
+- 메모 작성·조회·수정·삭제
+- 입력 오류 메시지 처리
+- Flask 세션 로그인 유지
+- 보호 API 로그인 검사
+- CSRF 검사
+- 제출용 환경 설정과 README 정리
